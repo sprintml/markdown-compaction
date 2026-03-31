@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown Table Compactor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: #8b949e;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+  }
+  .container {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    padding: 0.75rem;
+    resize: vertical;
+    tab-size: 2;
+  }
+  textarea:focus { outline: none; border-color: #58a6ff; }
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  button {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    background: #21262d;
+    color: #e6edf3;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: #30363d; }
+  button.primary {
+    background: #238636;
+    border-color: #2ea043;
+  }
+  button.primary:hover { background: #2ea043; }
+  .stats {
+    color: #8b949e;
+    font-size: 0.8rem;
+    margin-left: auto;
+  }
+  .saved { color: #3fb950; }
+  .copied {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: #238636;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .copied.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<h1>Markdown Table Compactor</h1>
+<p class="subtitle">Strips extra whitespace and collapses separator dashes</p>
+
+<div class="container">
+  <label for="input">Input</label>
+  <textarea id="input" spellcheck="false" placeholder="Paste a markdown table here..."></textarea>
+
+  <div class="actions">
+    <button class="primary" onclick="compact()">Compact</button>
+    <button onclick="copyOutput()">Copy output</button>
+    <button onclick="document.getElementById('input').value=''; document.getElementById('output').value=''; updateStats();">Clear</button>
+    <span class="stats" id="stats"></span>
+  </div>
+
+  <label for="output">Output</label>
+  <textarea id="output" spellcheck="false" readonly placeholder="Compacted table appears here..."></textarea>
+</div>
+
+<div class="copied" id="toast">Copied to clipboard</div>
+
+<script>
+function compactLine(line) {
+  // Must start/end with pipe to be a table row
+  const trimmed = line.trimEnd();
+  if (!trimmed.includes('|')) return trimmed;
+
+  // Split by pipe, keeping outer empties from leading/trailing pipes
+  const raw = trimmed.split('|');
+
+  // Check if this looks like a table line (starts with |)
+  if (trimmed[0] !== '|') return trimmed;
+
+  // raw[0] is '' (before first |), raw[last] is '' or content after last |
+  const cells = raw.slice(1, raw.length - 1);
+
+  const compacted = cells.map(cell => {
+    const c = cell.trim();
+    // Separator cell: collapse dashes, preserve colons
+    if (/^:?-+:?$/.test(c)) {
+      const left = c.startsWith(':') ? ':' : '';
+      const right = c.endsWith(':') ? ':' : '';
+      // Avoid double colon for ":-:" → just ":-:"
+      if (left && right) return ':-:';
+      return left + '-' + right;
+    }
+    return c;
+  });
+
+  return compacted.join('|');
+}
+
+function compact() {
+  const input = document.getElementById('input').value;
+  const lines = input.split('\n');
+  const output = lines.map(compactLine).join('\n');
+  document.getElementById('output').value = output;
+  updateStats();
+}
+
+function updateStats() {
+  const inp = document.getElementById('input').value;
+  const out = document.getElementById('output').value;
+  const el = document.getElementById('stats');
+  if (!inp || !out) { el.textContent = ''; return; }
+  const saved = inp.length - out.length;
+  const pct = ((saved / inp.length) * 100).toFixed(0);
+  el.innerHTML = `<span class="saved">${saved} chars saved (${pct}%)</span>`;
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text);
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+// Auto-compact on paste
+document.getElementById('input').addEventListener('paste', () => {
+  setTimeout(compact, 0);
+});
+</script>
+
+</body>
+</html>
