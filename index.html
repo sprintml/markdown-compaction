@@ -135,7 +135,7 @@ function compactLine(line) {
   // raw[0] is '' (before first |), raw[last] is '' or content after last |
   const cells = raw.slice(1, raw.length - 1);
 
-  const compacted = cells.map(cell => {
+  const compacted = cells.map((cell, index) => {
     const c = cell.trim();
     if (index === 0 && c === '') {
       return '-';
