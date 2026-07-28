@@ -137,6 +137,9 @@ function compactLine(line) {
 
   const compacted = cells.map(cell => {
     const c = cell.trim();
+    if (index === 0 && c === '') {
+      return '-';
+    }
     // Separator cell: collapse dashes, preserve colons
     if (/^:?-+:?$/.test(c)) {
       const left = c.startsWith(':') ? ':' : '';
